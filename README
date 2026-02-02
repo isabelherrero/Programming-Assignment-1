@@ -1,0 +1,147 @@
+1) Isabel Herrero Estrada
+
+2) 4428654619
+
+3) Briefly summarize what you have done in the assignment. (Please do not repeat the
+project description).
+- caesarDecrypt(): This function takes an encrypted string (username or password) and decrypts it using a Caesar cipher with a shift of -3. It shifts letters and digits backward with proper wraparound (a->x, 0->7, etc.) and leaves special characters unchanged. It returns the decrypted result.
+- loadLoginFile(): This function reads the login.txt file line by line and loads all encrypted username and password pairs into the loginCredentials map. It trims any whitespace, splits each line at the comma, and stores the username as the key and password as the value for later authentication.
+- queryGameServers(): This function contacts both game servers A and B over UDP to request their player lists using the PLAYER_LIST message. It receives the lists, parses the player names, records which players belong to which server in the playerToServer map, and prints out the players assigned to each server.
+- handleClient(): This function runs in a child process and handles all communication with a single client. It first receives the login message (guest or member), checks credentials for member logins against login.txt, and replies with success or failure. After successful login, it enters a loop to receive VIEW or MOVE requests, forwards them via UDP to the appropriate game server based on the player's name, receives the server's reply, and sends that reply back to the client over TCP.
+- main(): This function is the program's entry point. It loads the login file, creates and binds a UDP socket for talking to the game servers and a TCP socket for listening to client connections, and sets up the SIGCHLD handler. It queries the game servers for player lists, prints that the main server is running, and then enters an infinite loop accepting client connections. For each client, it forks a child process that calls handleClient, while the parent continues accepting new clients.
+- GameState(): This is the constructor for the GameState struct. It initializes the game state when the server starts: it sets moveCount to 0 and fills the 6 by 7 board array with spaces ' ' so the board starts empty. This ensures the game always begins with a clean board state in memory.
+- loadDataFile(): This function reads the file dataA.txt/dataB.txt and loads the game state. It first reads the two player names from the first line and stores them in gameState.player1 and gameState.player2. Then it reads each line describing moves (like Drop,3,2), reconstructs the moves on the board by placing 'X' and 'O' tokens in the correct positions, and updates moveCount. This lets the server resume an existing game.
+- saveDataFile(): This function writes the current game state from memory back into dataA.txt/dataB.txt. It first writes the two player names on the first line. Then it reconstructs all moves by scanning the board column by column, building "Drop,column,height" lines, and writing them to the file. This way, any changes made to the board (new moves) are saved so the game can be recovered later.
+- getBoardString(): This function creates a representation of the current board and returns it as a single string. It includes the column numbers at the top and then each row of the board, using . for empty cells and X/O for player tokens. This string is used in responses to VIEW and MOVE requests so the client can display the current board.
+- checkWin(): This function checks whether the last move made resulted in a win. It figures out which token belongs to the last player ('X' or 'O') and scans the board for any sequence of four matching tokens in a row: horizontally, vertically, or diagonally in either direction. If it finds the win, it returns true; otherwise, it returns false. It’s used after a move to see if the game has been won.
+- makeMove(): This function tries to drop a token into the specified column. It first checks if the column is valid and not full. Starting from the bottom row, it looks for the first empty cell in that column and places the current player's token ('X' or 'O') there. It then increments moveCount, calls saveDataFile() to persist the state, and returns the row index where the token was placed. If the move is invalid (out of range or column full), it returns -1.
+- main(): This is the entry point of Server A or Server B. It creates a UDP socket, binds it to Server A's or Server B's port on localhost, prints that the server is running, and calls loadDataFile() to restore the game state. Then it enters an infinite loop where it waits for UDP messages from the main server. Depending on the message type (PLAYER_LIST, VIEW, or MOVE), it sends back the player list, the current board, or processes a move (using makeMove() and checkWin()), and then replies with the updated game state or an error message.
+- ceaserEncrypt(): This function takes a string (like a username or password) and encrypts it using a Caesar cipher with a shift of +3. It goes through each character and, if it's a lowercase letter, uppercase letter, or digit, it shifts it forward by 3 positions with wraparound (so z -> c, Z -> C, 9 -> 2). Any other characters are left unchanged. It returns the encrypted string, which is then sent to the main server for authentication.
+- main(): This is the entry point for the client program. It creates a TCP socket, connects to the main server on localhost, and asks the user to enter a username and an optional password. It encrypts these with caesarEncrypt, sends the authentication request, and handles the server's response (fail, guest success, or member success). After successful login, it repeatedly prompts the user to choose an action: view (to see the current board) or move (to make a move, members only). For each action, it builds the appropriate request (VIEW or MOVE:column), sends it to the main server, receives the response, and prints the board or error messages. The loop continues until the user quits or the connection closes, then the socket is closed and the program exits.
+
+4) List all your code files and briefly summarize their fulfilled functionalities. (Please
+do not repeat the project description).
+Makefile: 
+- make all: compiles and run servemain.cpp, client.cpp, serverA.cpp, serverB.cpp
+- make clean: removes servermain file, client file, serverA file, serverB file
+- make server: compiles and runs only servermain.cpp
+- make client: compiles and runs only client.cpp
+- make serverA: compiles and runs only serverA.cpp
+- make serverB: compiles and runs only serverB.cpp
+servermain.cpp:
+- caesarDecrypt()
+- loadLoginFile()
+- queryGameServers()
+- handleClient()
+- main()
+- sigchld_handler() -> from Beej's Guide
+serverA.cpp:
+- GameState()
+- loadDataFile()
+- saveDataFile()
+- getBoardString()
+- checkWin()
+- makeMove()
+- main()
+serverB.cpp:
+- GameState()
+- loadDataFile()
+- saveDataFile()
+- getBoardString()
+- checkWin()
+- makeMove()
+- main()
+client.cpp:
+- ceaserEncrypt()
+- main()
+
+5) The format of all the messages exchanged between servers.
+Authentication Messages (Client -> Main Server)
+- Member Login: <encrypted_username>,<encrypted_password>
+  - Example: Dqylwkd,sdvvzrug (Anvitha,password encrypted)
+- Guest Login: <encrypted_username>
+  - Example: Dqylwkd (Anvitha encrypted, no password)
+
+Authentication Response (Main Server -> Client)
+- Member Success: 'MEMBER_SUCCESS:<A|B>'
+  - Example: 'MEMBER_SUCCESS:A'
+- Guest Success: 'GUEST_SUCCESS'
+- Failure: 'FAIL'
+
+Query Messages (Client -> Main Server)
+- View Board: 'VIEW'
+- Make Move: 'MOVE:<column_number>'
+  - Example: 'MOVE:3'
+
+Query Response (Main Server -> Client)
+- Board State: 'BOARD:<board_string>\nCurrent turn: Player <X|O>'
+- Move Accepted: 'ACCEPTED:<board_string>[\nWIN:Player wins!]'
+- Move Invalid: 'INVALID:Move to column <col> is invalid.'
+
+Player List Query (Main Server -> Game Server A/B)
+- Request: 'PLAYER_LIST'
+
+Player List Response (Game Server A/B -> Main Server)
+- Response: '<player1>,<player2>'
+  - Example from Server A: 'Anvitha,Snoopy'
+  - Example from Server B: 'Charlie,Linus'
+
+Game Query Forwarding (Main Server -> Game Server A/B)
+- View Request: 'VIEW'
+- Move Request: 'MOVE:<column_number>'
+  - Example: 'MOVE:3'
+
+Game Response (Game Server A/B -> Main Server)
+- Board State: 'BOARD:<board_string>\nCurrent turn: Player <X|O>'
+- Move Accepted: 'ACCEPTED:<board_string>[\nWIN:Player wins!]'
+- Move Invalid: 'INVALID:Move to column <col> is invalid.
+
+6) Any idiosyncrasy of your project. It should say under what conditions the project
+fails, if any.
+- If you press "Enter" in username and then press "Enter" in password it hangs until program is killed.
+- If you use the usernames provided in the txt file and press "Enter" it registers it as a guest and therefore cannot do moves.
+- No error checking to see if the login.txt file opened correctly.
+- If authentication fails, it closes the process and exits, it does not re-ask to do authentication process again, it requires to run ./client again and input username again.
+- All connect 4 game game structures taken from connect4_wrapper.hpp, connect4.c, and connect4.h and implemented directly into the other files because I wrote this project in C++ and the provided files were in C therefore thought this was the way to go but utilized the system provided.
+
+6) Reused Code: Did you use code from anywhere for your project? If not, say so. If
+so, say what functions and where they're from. (Also identify this with a comment
+in the source code.)
+References:
+-> https://www.tutorialspoint.com/cplusplus-program-to-implement-caesar-cypher
+-> https://www.geeksforgeeks.org/ethical-hacking/caesar-cipher-in-cryptography/
+-> https://community.spiceworks.com/t/caesar-cipher-in-c/265285/11
+-> https://cplusplus.com/forum/beginner/283634/
+-> https://www.tutorialspoint.com/parsing-a-comma-delimited-std-string-in-cplusplus
+-> https://beej.us/guide/bgnet/html/
+-> https://stackoverflow.com/questions/13482416/linux-waitpid-wnohang-and-zombies
+-> https://cplusplus.com/forum/beginner/144262/
+-> https://www.gamedev.net/forums/topic/593332-connect-4-c/
+-> https://www.daniweb.com/programming/software-development/threads/46290/c-program-connect-4
+-> https://stackoverflow.com/questions/35169200/checking-winner-in-connect-4-c-algorithm
+-> https://cplusplus.com/forum/beginner/248910/
+-> https://www.geeksforgeeks.org/c/getchar-function-in-c/
+-> https://www.geeksforgeeks.org/cpp/socket-programming-in-cpp/
+-> https://www.linuxhowtos.org/C_C++/socket.htm
+-> https://cplusplus.com/forum/unices/82128/
+-> https://www.geeksforgeeks.org/cpp/stringnpos-in-c-with-examples/
+-> https://www.geeksforgeeks.org/cpp/map-associative-containers-the-c-standard-template-library-stl/
+-> https://cplusplus.com/forum/beginner/264189/
+-> https://www.geeksforgeeks.org/cpp/set-in-cpp-stl/
+-> https://www.geeksforgeeks.org/cpp/signal-handling-in-cpp/
+-> https://unix.stackexchange.com/questions/616555/
+-> https://stackoverflow.com/questions/3313628/identify-c-socket-port-number
+-> https://www.geeksforgeeks.org/cpp/stdall_of-in-cpp/
+-> https://www.geeksforgeeks.org/cpp/bitsstdc-h-c/
+-> https://cplusplus.com/forum/beginner/863/
+-> https://www.geeksforgeeks.org/cpp/boosttrim-in-cpp-library/
+-> https://www.geeksforgeeks.org/cpp/stdstringback-in-c-with-examples/
+-> https://cplusplus.com/reference/string/basic_string/back/
+-> https://www.geeksforgeeks.org/cpp/how-to-split-string-by-delimiter-in-cpp/
+-> https://gamedev.stackexchange.com/questions/61786/server-list-for-a-game
+-> https://cplusplus.com/forum/general/103402/
+-> https://www.geeksforgeeks.org/cpp/unordered_map-in-cpp-stl/
+-> https://cplusplus.com/reference/unordered_map/unordered_map/
+-> https://www.geeksforgeeks.org/cpp/infinite-loop-in-cpp/
+-> https://www.geeksforgeeks.org/cpp/stdstringrfind-in-c-with-examples/
+-> https://cplusplus.com/forum/beginner/18048/
