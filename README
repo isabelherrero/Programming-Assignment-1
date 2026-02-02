@@ -1,0 +1,101 @@
+1) Isabel Herrero Estrada
+
+2) 4428654619
+
+3) Ubuntu 22.04.5 LTS
+
+4) What you have done in the assignment.
+servermain.cpp:
+- sendTo(): This function sends a message to another server using UDP. It creates a special structure (sockaddr_in) that holds 
+the IP address and port number of the destination, sets it to the localhost (127.0.0.1), and then uses the sendto() system call to send 
+the message. It’s used by the main server to send "LIST?" requests to Game Servers A, B, and C and later to send player move 
+queries like "QUERY,PlayerName,Column".
+- trim(): This function cleans up a string by removing extra spaces, commas, and newline characters from the beginning and end. 
+It makes sure every message and user input is clean before being processed.
+- split(): This function breaks a string into smaller parts called tokens using a chosen separator, like a comma. For example, the 
+string "PLAYERS,Alice,Bob" becomes a list ["PLAYERS", "Alice", "Bob"]. This makes it easy for the program to extract player names or 
+response values from messages sent by the game servers.
+- main(): This function creates and binds a UDP socket for the main server, sends "LIST?" messages to all game servers, and receives 
+the lists of players from each one. After setup, it lets the user type in a player name and column number to drop a token in the game. 
+It sends the request to the correct game server, waits for a response, and prints messages like “You successfully dropped a token in 
+slot X” or “Column is full.” It keeps running in a loop until the program is closed by Ctrl+C.
+- loadFile(): This function reads the local data file and sets up the initial game state for the server. It loads the two player names 
+from the first line of the file, then reads the rest of the lines to find how many slots remain in each column. It also counts how many 
+moves have been made to decide which player’s turn is next. This function makes sure the server starts with the correct player names, 
+board setup, and turn order before handling any messages from the main server.
+- main(): This function starts by calling loadFile() to initialize the game data, then creates and binds a UDP socket on the server’s 
+assigned port. After that, it enters a loop that continuously listens for messages from the main server. When it receives a message, 
+it checks whether it’s a "LIST?" request or a "QUERY" command. It then responds by either sending the list of players or updating the 
+game state and sending back the result of a move.
+
+
+5) What your code files are and what each one of them does. (Please do not repeat the
+project description, just name your code files, and briefly mention what they do).
+Makefile: 
+- make all: compiles and runs servemain.cpp, serverA.cpp, serverB.cpp and serverC.cpp
+- make clean: removes servermain, serverA, serverB and serverC files
+- make server: compiles and runs only servermain.cpp
+- make serverA: compiles and runs only serverA.cpp
+- make serverB: compiles and runs only serverA.cpp
+- make serverC: compiles and runs only serverA.cpp
+servermain.cpp:
+- sendTo()
+- trim()
+- split()
+- main()
+serverA.cpp:
+- trim()
+- split()
+- loadFile()
+- main()
+serverB.cpp:
+- trim()
+- split()
+- loadFile()
+- main()
+serverC.cpp:
+- trim()
+- split()
+- loadFile()
+- main()
+
+
+6) The format of all the messages exchanged.
+- All communication occurs over UDP sockets using the following port numbers:
+Main Server -> 33619
+Game Server A -> 30619
+Game Server B -> 31619
+Game Server C -> 32619
+- Messages are sent and received in plain text with no extra spaces, newlines, or trailing commas.
+- Each message sent by the Main Server expects exactly one response from the corresponding Game Server.
+- If any message format is incorrect or missing required data, the receiving server may ignore it or send back an error response.
+
+7) Any idiosyncrasy of your project. It should say under what conditions the project
+fails, if any.
+- This project assumes that all input files and network messages strictly follow the specified formats. If any file 
+(like dataA.txt, dataB.txt, or dataC.txt) is missing, incorrectly formatted, or contains extra spaces or missing commas, the servers may 
+fail to parse the data correctly and produce unexpected results.
+- If the main server or any game server is not started in the correct order or if one of the servers is not running, the UDP messages 
+will not be received, and the program may appear to hang waiting for a response.
+- The project also assumes that all player names are unique and that players only appear in their assigned game server’s data file. If a 
+client sends an invalid player name, the main server simply prints an error but does not crash.
+
+8) Reused Code: Did you use code from anywhere for your project? If not, say so. If
+so, say what functions and where they're from. (Also identify this with a comment in
+the source code.
+References:
+-> https://www.geeksforgeeks.org/cpp/bitsstdc-h-c/
+-> https://cplusplus.com/forum/beginner/863/
+-> https://www.geeksforgeeks.org/cpp/boosttrim-in-cpp-library/
+-> https://www.geeksforgeeks.org/cpp/stdstringback-in-c-with-examples/
+-> https://cplusplus.com/reference/string/basic_string/back/
+-> https://www.geeksforgeeks.org/cpp/how-to-split-string-by-delimiter-in-cpp/
+-> https://gamedev.stackexchange.com/questions/61786/server-list-for-a-game
+-> https://cplusplus.com/forum/general/103402/
+-> https://www.geeksforgeeks.org/cpp/unordered_map-in-cpp-stl/
+-> https://cplusplus.com/reference/unordered_map/unordered_map/
+-> https://www.geeksforgeeks.org/cpp/infinite-loop-in-cpp/
+-> https://www.geeksforgeeks.org/cpp/stdstringrfind-in-c-with-examples/
+-> https://cplusplus.com/forum/beginner/18048/
+-> https://beej.us/guide/bgnet/html/
+
