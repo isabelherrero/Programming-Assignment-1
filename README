@@ -1,0 +1,83 @@
+1) Isabel Herrero Estrada
+
+2) 4428654619
+
+3) What you have done in the assignment.
+- main(): This function runs a TCP client program that lets the user search for player information by name.
+When the program starts, it prints a message saying the client is running. Then it enters an endless loop, where it keeps asking the user to enter a player name.
+For each name entered, the client sets up a connection to the server using a TCP socket. It sends the player name to the server and waits for a reply.
+If the server says the player is not found, the client prints a message. If the player is found, it prints the player’s information.
+The program also shows the client’s port number (used as an ID) for each request. After each search, the connection is closed, and the program is ready for the next query. 
+The loop continues until the user stops the program using Ctrl+C.
+- sigchld_handler() -> from Beej's Guide: This function handles the cleanup of child processes after they finish running. When the main server forks a new process to handle
+a client, that process eventually ends. The sigchld_handler makes sure those finished processes are properly removed so they do not become zombie processes and take up 
+system resources.
+- get_in_addr() -> Beej's Guide: This function returns the correct part of a socket address that holds the IP address.
+- readListFile(): This function reads the file list.txt and loads all player and game server information into memory. It goes through the file line by line, removes extra 
+spaces, and separates players and their opponents. It stores this data in maps and sets so the main server knows which game server each player belongs to. After reading the 
+file, it prints a message showing that the player list has been successfully loaded.
+- main(): It starts the main server, calls readListFile() to load data, and sets up a TCP socket on port 24619. The server waits for clients to connect and forks a new 
+process for each client. Each child process receives the player’s name, looks up their information, and sends back the results. The main function also prints messages 
+showing what the server is doing, like when clients connect or when player data is sent.
+
+4) What your code files are and what each one does (please do not repeat the project description, just name your code files and briefly mention their purpose)
+Makefile: 
+- make all: compiles and run servemain.cpp and client.cpp
+- make clean: removes servermain file and client file
+- make server: compiles and runs only servermain.cpp
+- make client: compiles and runs only client.cpp
+client.cpp:
+- main()
+servemain.cpp:
+- sigchld_handler() -> from Beej's Guide
+- get_in_addr() -> Beej's Guide
+- readListFile()
+- main()
+
+5) The format of all the messages exchanged.
+Main server is up and running.
+Main server has read the player list from list.txt.
+Total number of Game Servers: <#>
+Game Server <ID> contains <#> players
+
+Main server has received the request about Player <PlayerName> from client (ID: <ClientPort>) using TCP over port 24619
+<PlayerName> shows up in Game server <ID> with opponent <OpponentName>
+<PlayerName> shows up in Game server <ID> with no opponent
+Main Server has sent searching result to client (ID: <ClientPort>) using TCP over port 24619
+<PlayerName> does not show up in Game server <ID1>, <ID2>, ...
+The Main Server has sent "Player Name: Not found" to client (ID: <ClientPort>) using TCP over port 24619
+Client is up and running.
+Enter Player Name:
+Client (ID: <ClientPort>) has sent Player <PlayerName> to Main Server using TCP over port <#>
+CLient has received results from Main Server: 
+<PlayerName> is associated with Game server <ID> and <OpponentName>/no opponent
+
+6) Any idiosyncrasy of your project. It should say under what conditions the project
+fails, if any.
+- Need to type name exactly as it is in the list.txt such as inputting "jim" would not equal to "Jim" and not find that player's name.
+- At first had to also take into account the different formats of the list.txt since some have only one name as input, some have two and the difference is the lack of or
+presence of a semicolon. I had issues with this because input such as "Violet" were not being registered because the code was reading the list.txt as each name should have a semicolon after it. 
+- Didn't include the circumstance in which the input from the Client is empty because of the assumption that the list.txt is always populated.
+- During the running of the server and client, didnt take into account that if the user Ctrl+C out of either the server or client that it automatically closes the server or client that was also open.
+- Don't have error checking to make sure list.txt file can be opened.
+
+7) Reused Code: Did you use code from anywhere for your project? If not, say so. If
+so, say what functions and where they're from. (Also identify this with a comment in
+the source code.)
+References: 
+-> https://beej.us/guide/bgnet/html/#closeman
+-> https://www.geeksforgeeks.org/cpp/socket-programming-in-cpp/
+-> https://www.linuxhowtos.org/C_C++/socket.htm
+-> https://cplusplus.com/forum/unices/82128/
+-> https://www.geeksforgeeks.org/cpp/stringnpos-in-c-with-examples/
+-> https://www.geeksforgeeks.org/cpp/map-associative-containers-the-c-standard-template-library-stl/
+-> https://cplusplus.com/forum/beginner/264189/
+-> https://www.geeksforgeeks.org/cpp/set-in-cpp-stl/
+-> https://www.geeksforgeeks.org/cpp/signal-handling-in-cpp/
+-> https://unix.stackexchange.com/questions/616555/what-is-the-relation-between-sigchld-and-waitpid-orwait
+-> https://stackoverflow.com/questions/3313628/identify-c-socket-port-number
+-> https://www.geeksforgeeks.org/cpp/stdall_of-in-cpp/
+
+
+
+
